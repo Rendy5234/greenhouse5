@@ -1,0 +1,67 @@
+# === OS & EDITOR ===
+.DS_Store
+Thumbs.db
+*.log
+/.fleet
+/.idea
+/.nova
+/.zed
+
+# === VS CODE (KECUALIKAN MCP) ===
+/.vscode/*
+!/.vscode/settings.json
+!/.vscode/extensions.json
+
+# === ENVIRONMENT ===
+.env
+.env.backup
+.env.production
+/.env.local
+
+# === DATABASE ===
+/database/*.sqlite
+/database/*.sqlite-*
+
+# === DEPENDENSI ===
+/node_modules
+/vendor
+/auth.json
+
+# === BUILD & ASSET ===
+/public/build
+/public/hot
+/public/storage
+/public/css/filament
+/public/fonts/filament
+/public/js/filament
+
+# === STORAGE & CACHE ===
+/storage/*.key
+/storage/pail
+/storage/framework/cache/data/*
+/storage/framework/sessions/*
+/storage/framework/views/*
+/storage/logs/*.log
+/bootstrap/cache/*.php
+
+# === TESTING ===
+/.phpunit.cache
+.phpunit.result.cache
+.phpactor.json
+
+# === HOMESTEAD ===
+Homestead.json
+Homestead.yaml
+
+# === CLINE SYMLINK (dibuat ulang saat setup) ===
+/.cline/skills
+/.cline/skills/
+
+# === AI TOOLING (CLINE, BOOST, MCP) ===
+/.cline/
+/.clinerules/
+/.github/skills/
+/AGENTS.md
+/boost.json
+/memori.md
+/storage/phpstan
