@@ -1,60 +1,74 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Policies;
 
 use App\Models\Configuration;
-use App\Models\User;
-use Illuminate\Auth\Access\Response;
+use Illuminate\Auth\Access\HandlesAuthorization;
+use Illuminate\Foundation\Auth\User as AuthUser;
 
 class ConfigurationPolicy
 {
-    /**
-     * Tentukan apakah user bisa melihat daftar konfigurasi.
-     */
-    public function viewAny(User $user): Response
+    use HandlesAuthorization;
+
+    public function viewAny(AuthUser $authUser): bool
     {
-        return $user->can('view_any configuration')
-            ? Response::allow()
-            : Response::deny('Anda tidak memiliki akses.');
+        return $authUser->can('ViewAny:Configuration');
     }
 
-    /**
-     * Tentukan apakah user bisa melihat detail konfigurasi.
-     */
-    public function view(User $user, Configuration $configuration): Response
+    public function view(AuthUser $authUser, Configuration $configuration): bool
     {
-        return $user->can('view configuration')
-            ? Response::allow()
-            : Response::deny('Anda tidak memiliki akses.');
+        return $authUser->can('View:Configuration');
     }
 
-    /**
-     * Tentukan apakah user bisa membuat konfigurasi baru.
-     */
-    public function create(User $user): Response
+    public function create(AuthUser $authUser): bool
     {
-        return $user->can('create configuration')
-            ? Response::allow()
-            : Response::deny('Anda tidak memiliki akses.');
+        return $authUser->can('Create:Configuration');
     }
 
-    /**
-     * Tentukan apakah user bisa mengupdate konfigurasi.
-     */
-    public function update(User $user, Configuration $configuration): Response
+    public function update(AuthUser $authUser, Configuration $configuration): bool
     {
-        return $user->can('update configuration')
-            ? Response::allow()
-            : Response::deny('Anda tidak memiliki akses.');
+        return $authUser->can('Update:Configuration');
     }
 
-    /**
-     * Tentukan apakah user bisa menghapus konfigurasi.
-     */
-    public function delete(User $user, Configuration $configuration): Response
+    public function delete(AuthUser $authUser, Configuration $configuration): bool
     {
-        return $user->can('delete configuration')
-            ? Response::allow()
-            : Response::deny('Anda tidak memiliki akses.');
+        return $authUser->can('Delete:Configuration');
+    }
+
+    public function deleteAny(AuthUser $authUser): bool
+    {
+        return $authUser->can('DeleteAny:Configuration');
+    }
+
+    public function restore(AuthUser $authUser, Configuration $configuration): bool
+    {
+        return $authUser->can('Restore:Configuration');
+    }
+
+    public function forceDelete(AuthUser $authUser, Configuration $configuration): bool
+    {
+        return $authUser->can('ForceDelete:Configuration');
+    }
+
+    public function forceDeleteAny(AuthUser $authUser): bool
+    {
+        return $authUser->can('ForceDeleteAny:Configuration');
+    }
+
+    public function restoreAny(AuthUser $authUser): bool
+    {
+        return $authUser->can('RestoreAny:Configuration');
+    }
+
+    public function replicate(AuthUser $authUser, Configuration $configuration): bool
+    {
+        return $authUser->can('Replicate:Configuration');
+    }
+
+    public function reorder(AuthUser $authUser): bool
+    {
+        return $authUser->can('Reorder:Configuration');
     }
 }

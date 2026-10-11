@@ -20,6 +20,7 @@ return [
     */
 
     'shield_resource' => [
+        'enabled' => true,
         'slug' => 'shield/roles',
         'show_model_path' => true,
         'cluster' => null,
