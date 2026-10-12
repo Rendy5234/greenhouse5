@@ -12,6 +12,7 @@ use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Model;
 
 class ConfigurationResource extends Resource
 {
@@ -52,5 +53,45 @@ class ConfigurationResource extends Resource
             'create' => CreateConfiguration::route('/create'),
             'edit' => EditConfiguration::route('/{record}/edit'),
         ];
+    }
+
+    /**
+     * Judul hasil global search (fallback ke `key` jika `label` kosong).
+     *
+     * @param  Configuration  $record
+     */
+    public static function getGlobalSearchResultTitle(Model $record): string
+    {
+        return $record->label ?: $record->key;
+    }
+
+    /**
+     * Detail tambahan yang ditampilkan di hasil global search.
+     *
+     * @param  Configuration  $record
+     * @return array<string, string>
+     */
+    public static function getGlobalSearchResultDetails(Model $record): array
+    {
+        return [
+            'Key' => (string) $record->key,
+            'Nilai' => (string) $record->value,
+            'Tipe' => (string) $record->type,
+        ];
+    }
+
+    /**
+     * Kolom yang ikut dicari dari kolom pencarian global.
+     *
+     * @return array<string>
+     */
+    public static function getGloballySearchableAttributes(): array
+    {
+        return ['key', 'label', 'value', 'description'];
+    }
+
+    public static function getGlobalSearchResultsLimit(): int
+    {
+        return 10;
     }
 }
