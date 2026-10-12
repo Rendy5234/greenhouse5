@@ -4,10 +4,10 @@ namespace Tests\Feature;
 
 use App\Filament\Resources\ConfigurationResource\ConfigurationResource;
 use App\Models\Configuration;
+use App\Models\Permission;
 use App\Models\User;
 use Filament\Facades\Filament;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Spatie\Permission\Models\Permission;
 use Spatie\Permission\PermissionRegistrar;
 use Tests\TestCase;
 
