@@ -114,6 +114,12 @@ return [
     ],
 
     /*
+     * When set to true, the package will allow the use of UUIDs for roles and permissions
+     * in SQLite testing environments (where the UUID column cannot be NOT NULL).
+     */
+    'testing' => env('PERMISSION_TESTING', false),
+
+    /*
      * When set to true, the method for checking permissions will be registered on the gate.
      * Set this to false if you want to implement custom logic for checking permissions.
      */

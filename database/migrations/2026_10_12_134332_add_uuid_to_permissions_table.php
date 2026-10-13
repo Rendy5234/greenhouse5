@@ -15,7 +15,9 @@ return new class extends Migration
     {
         Schema::table('permissions', function (Blueprint $table) {
             // Add as nullable first (SQLite requirement)
-            $table->binary('uuid', 16)->nullable()->after('id');
+            // Respect permission.testing config - in testing mode, keep nullable
+            $isTesting = config('permission.testing');
+            $table->binary('uuid', 16)->nullable($isTesting)->after('id');
         });
 
         // Generate UUID for existing records
@@ -26,10 +28,17 @@ return new class extends Migration
                 ->update(['uuid' => Str::uuid()->getBytes()]);
         }
 
-        // Now make it NOT NULL and unique
-        Schema::table('permissions', function (Blueprint $table) {
-            $table->binary('uuid', 16)->unique()->nullable(false)->change()->after('id');
-        });
+        // Now make it NOT NULL and unique (skip if testing mode)
+        if (! config('permission.testing')) {
+            Schema::table('permissions', function (Blueprint $table) {
+                $table->binary('uuid', 16)->unique()->nullable(false)->change()->after('id');
+            });
+        } else {
+            // In testing mode, just add unique constraint
+            Schema::table('permissions', function (Blueprint $table) {
+                $table->unique('uuid');
+            });
+        }
     }
 
     /**

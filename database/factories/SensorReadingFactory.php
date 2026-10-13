@@ -22,6 +22,10 @@ class SensorReadingFactory extends Factory
             'relay_fan' => $this->faker->boolean,
             'relay_pump' => $this->faker->boolean,
             'led_mode' => $this->faker->randomElement(['normal', 'kipas', 'pompa', 'kritis']),
+            'temp_on_used' => $this->faker->optional()->randomFloat(2, 20, 35),
+            'temp_off_used' => $this->faker->optional()->randomFloat(2, 20, 35),
+            'soil_dry_used' => $this->faker->optional()->numberBetween(0, 100),
+            'soil_wet_used' => $this->faker->optional()->numberBetween(0, 100),
         ];
     }
 }

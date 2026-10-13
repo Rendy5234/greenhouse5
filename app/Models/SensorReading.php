@@ -19,6 +19,10 @@ class SensorReading extends Model
         'relay_fan',
         'relay_pump',
         'led_mode',
+        'temp_on_used',
+        'temp_off_used',
+        'soil_dry_used',
+        'soil_wet_used',
     ];
 
     /**
@@ -31,6 +35,10 @@ class SensorReading extends Model
             'relay_pump' => 'boolean',
             'suhu' => 'decimal:2',
             'kelembapan_udara' => 'decimal:2',
+            'temp_on_used' => 'decimal:2',
+            'temp_off_used' => 'decimal:2',
+            'soil_dry_used' => 'integer',
+            'soil_wet_used' => 'integer',
             'created_at' => 'datetime',
         ];
     }

@@ -194,6 +194,24 @@ return [
                 'update',
                 'delete',
             ],
+            \App\Filament\Resources\ConfigurationResource\ConfigurationResource::class => [
+                'viewAny',
+                'view',
+                'create',
+                'update',
+                'delete',
+                'deleteAny',
+                'forceDelete',
+                'forceDeleteAny',
+                'restore',
+                'restoreAny',
+                'replicate',
+                'reorder',
+            ],
+            \App\Filament\Resources\SensorReadingResource\SensorReadingResource::class => [
+                'viewAny',
+                'view',
+            ],
         ],
         'exclude' => [
             //

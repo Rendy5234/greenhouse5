@@ -4,6 +4,7 @@ namespace Database\Seeders;
 
 use App\Models\Configuration;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Str;
 
 class ConfigurationSeeder extends Seeder
 {
@@ -19,6 +20,7 @@ class ConfigurationSeeder extends Seeder
                 'type' => 'float',
                 'label' => 'Suhu Kipas Nyala (°C)',
                 'description' => 'Threshold suhu ketika kipas ventilasi harusnyala. Saat suhu melebihi nilai ini, kipas akan otomatis aktif.',
+                'uuid' => Str::uuid()->getBytes(),
             ],
             [
                 'key' => 'temp_off',
@@ -26,6 +28,7 @@ class ConfigurationSeeder extends Seeder
                 'type' => 'float',
                 'label' => 'Suhu Kipas Mati (°C)',
                 'description' => 'Threshold suhu ketika kipas ventilasi harusmati. Saat suhu turun di bawah nilai ini, kipas akan otomatis nonaktif.',
+                'uuid' => Str::uuid()->getBytes(),
             ],
             [
                 'key' => 'soil_dry',
@@ -33,6 +36,7 @@ class ConfigurationSeeder extends Seeder
                 'type' => 'integer',
                 'label' => 'ADC Tanah Kering (Pompa Nyala)',
                 'description' => 'Nilai ADC dari potensiometer tanah ketika tanah dianggapkering. Saat nilai melebihi ini, pompa irigasi akan aktif.',
+                'uuid' => Str::uuid()->getBytes(),
             ],
             [
                 'key' => 'soil_wet',
@@ -40,6 +44,7 @@ class ConfigurationSeeder extends Seeder
                 'type' => 'integer',
                 'label' => 'ADC Tanah Basah (Pompa Mati)',
                 'description' => 'Nilai ADC dari potensiometer tanah ketika tanah dianggapbasah. Saat nilai turun di bawah ini, pompa irigasi akan nonaktif.',
+                'uuid' => Str::uuid()->getBytes(),
             ],
         ];
 

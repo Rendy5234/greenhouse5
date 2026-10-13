@@ -1,60 +1,75 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Policies;
 
+use Illuminate\Foundation\Auth\User as AuthUser;
 use App\Models\SensorReading;
-use App\Models\User;
-use Illuminate\Auth\Access\Response;
+use Illuminate\Auth\Access\HandlesAuthorization;
 
 class SensorReadingPolicy
 {
-    /**
-     * Tentukan apakah user bisa melihat daftar reading sensor.
-     */
-    public function viewAny(User $user): Response
+    use HandlesAuthorization;
+    
+    public function viewAny(AuthUser $authUser): bool
     {
-        return $user->can('view_any sensor_reading')
-            ? Response::allow()
-            : Response::deny('Anda tidak memiliki akses.');
+        return $authUser->can('ViewAny:SensorReading');
     }
 
-    /**
-     * Tentukan apakah user bisa melihat detail reading sensor.
-     */
-    public function view(User $user, SensorReading $sensorReading): Response
+    public function view(AuthUser $authUser, SensorReading $sensorReading): bool
     {
-        return $user->can('view sensor_reading')
-            ? Response::allow()
-            : Response::deny('Anda tidak memiliki akses.');
+        return $authUser->can('View:SensorReading');
     }
 
-    /**
-     * Tentukan apakah user bisa membuat reading sensor baru.
-     */
-    public function create(User $user): Response
+    public function create(AuthUser $authUser): bool
     {
-        return $user->can('create sensor_reading')
-            ? Response::allow()
-            : Response::deny('Anda tidak memiliki akses.');
+        return $authUser->can('Create:SensorReading');
     }
 
-    /**
-     * Tentukan apakah user bisa mengupdate reading sensor.
-     */
-    public function update(User $user, SensorReading $sensorReading): Response
+    public function update(AuthUser $authUser, SensorReading $sensorReading): bool
     {
-        return $user->can('update sensor_reading')
-            ? Response::allow()
-            : Response::deny('Anda tidak memiliki akses.');
+        return $authUser->can('Update:SensorReading');
     }
 
-    /**
-     * Tentukan apakah user bisa menghapus reading sensor.
-     */
-    public function delete(User $user, SensorReading $sensorReading): Response
+    public function delete(AuthUser $authUser, SensorReading $sensorReading): bool
     {
-        return $user->can('delete sensor_reading')
-            ? Response::allow()
-            : Response::deny('Anda tidak memiliki akses.');
+        return $authUser->can('Delete:SensorReading');
     }
+
+    public function deleteAny(AuthUser $authUser): bool
+    {
+        return $authUser->can('DeleteAny:SensorReading');
+    }
+
+    public function restore(AuthUser $authUser, SensorReading $sensorReading): bool
+    {
+        return $authUser->can('Restore:SensorReading');
+    }
+
+    public function forceDelete(AuthUser $authUser, SensorReading $sensorReading): bool
+    {
+        return $authUser->can('ForceDelete:SensorReading');
+    }
+
+    public function forceDeleteAny(AuthUser $authUser): bool
+    {
+        return $authUser->can('ForceDeleteAny:SensorReading');
+    }
+
+    public function restoreAny(AuthUser $authUser): bool
+    {
+        return $authUser->can('RestoreAny:SensorReading');
+    }
+
+    public function replicate(AuthUser $authUser, SensorReading $sensorReading): bool
+    {
+        return $authUser->can('Replicate:SensorReading');
+    }
+
+    public function reorder(AuthUser $authUser): bool
+    {
+        return $authUser->can('Reorder:SensorReading');
+    }
+
 }
