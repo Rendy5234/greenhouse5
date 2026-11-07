@@ -65,3 +65,6 @@ Homestead.yaml
 /boost.json
 /memori.md
 /storage/phpstan
+.vscode
+.github
+/docs\arduino
