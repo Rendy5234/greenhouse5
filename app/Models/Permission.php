@@ -6,6 +6,9 @@ use App\Casts\BinaryUuidToHex;
 use Illuminate\Support\Str;
 use Spatie\Permission\Models\Permission as SpatiePermission;
 
+/**
+ * @property string $uuid
+ */
 class Permission extends SpatiePermission
 {
     /**

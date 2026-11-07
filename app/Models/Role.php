@@ -6,6 +6,9 @@ use App\Casts\BinaryUuidToHex;
 use Illuminate\Support\Str;
 use Spatie\Permission\Models\Role as SpatieRole;
 
+/**
+ * @property string $uuid
+ */
 class Role extends SpatieRole
 {
     /**

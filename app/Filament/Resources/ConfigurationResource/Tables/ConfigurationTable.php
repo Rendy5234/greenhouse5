@@ -4,6 +4,7 @@ namespace App\Filament\Resources\ConfigurationResource\Tables;
 
 use App\Filament\Resources\ConfigurationResource\ConfigurationResource;
 use Filament\Actions\EditAction;
+use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 
@@ -53,7 +54,7 @@ class ConfigurationTable
             ->filters([])
             ->actions([
                 EditAction::make()
-                    ->icon('heroicon-o-pencil'),
+                    ->icon(Heroicon::Pencil),
             ])
             ->bulkActions([])
             ->defaultSort('key', 'asc')

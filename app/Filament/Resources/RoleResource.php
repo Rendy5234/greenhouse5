@@ -11,6 +11,7 @@ use App\Filament\Resources\RoleResource\Pages\ViewRole;
 use BezhanSalleh\FilamentShield\Resources\Roles\RoleResource as BaseRoleResource;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\EditAction;
+use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 
@@ -27,9 +28,9 @@ class RoleResource extends BaseRoleResource
         return parent::table($table)
             ->recordActions([
                 EditAction::make()
-                    ->icon('heroicon-o-pencil'),
+                    ->icon(Heroicon::Pencil),
                 DeleteAction::make()
-                    ->icon('heroicon-o-trash'),
+                    ->icon(Heroicon::Trash),
             ]);
     }
 

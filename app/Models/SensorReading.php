@@ -2,8 +2,11 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\DB;
 
 class SensorReading extends Model
 {
@@ -46,7 +49,7 @@ class SensorReading extends Model
     /**
      * Scope untuk filter berdasarkan mode LED.
      */
-    public function scopeByMode($query, string $mode)
+    public function scopeByMode(Builder $query, string $mode): Builder
     {
         return $query->where('led_mode', $mode);
     }
@@ -54,8 +57,36 @@ class SensorReading extends Model
     /**
      * Scope untuk filter berdasarkan rentang waktu.
      */
-    public function scopeDateRange($query, string $startDate, string $endDate)
+    public function scopeDateRange(Builder $query, string $startDate, string $endDate): Builder
     {
         return $query->whereBetween('created_at', [$startDate, $endDate]);
+    }
+
+    /**
+     * Scope untuk mendapatkan rata-rata per jam (cross-database compatible).
+     *
+     * @param  Carbon  $since  Waktu mulai (misalnya now()->subDay())
+     */
+    public function scopeHourlyAverages(Builder $query, Carbon $since): Builder
+    {
+        return $query->selectRaw($this->getHourlySelectExpression())
+            ->where('created_at', '>=', $since)
+            ->groupBy('hour')
+            ->orderBy('hour');
+    }
+
+    /**
+     * Mendapatkan ekspresi SELECT yang kompatibel cross-database untuk grouping per jam.
+     */
+    private function getHourlySelectExpression(): string
+    {
+        $driver = DB::getDriverName();
+        $dateFormat = match ($driver) {
+            'sqlite' => "strftime('%Y-%m-%d %H:00:00', created_at)",
+            'pgsql' => "to_char(date_trunc('hour', created_at), 'YYYY-MM-DD HH24:00:00')",
+            default => "DATE_FORMAT(created_at, '%Y-%m-%d %H:00:00')", // mysql, mariadb
+        };
+
+        return "{$dateFormat} as hour, AVG(suhu) as avg_suhu, AVG(kelembapan_udara) as avg_kelembapan_udara, AVG(kelembapan_tanah) as avg_kelembapan_tanah";
     }
 }
