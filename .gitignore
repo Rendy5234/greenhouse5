@@ -67,3 +67,4 @@ Homestead.yaml
 /storage/phpstan
 .vscode
 .github
+.kilocode/
