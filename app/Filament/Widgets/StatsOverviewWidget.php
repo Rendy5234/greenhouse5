@@ -11,7 +11,7 @@ class StatsOverviewWidget extends BaseWidget
 {
     protected static ?int $sort = 1;
 
-    protected ?string $pollingInterval = '30s';
+    protected ?string $pollingInterval = '5s';
 
     protected function getStats(): array
     {
@@ -28,24 +28,26 @@ class StatsOverviewWidget extends BaseWidget
 
         $timeAgo = $latest->created_at->diffForHumans();
 
+        $charts = $this->getChartData();
+
         return [
             Stat::make('Suhu', "{$latest->suhu} °C")
                 ->description("Terupdate {$timeAgo}")
                 ->descriptionIcon(Heroicon::Sun)
                 ->color($this->getTemperatureColor($latest->suhu))
-                ->chart($this->getTemperatureChartData()),
+                ->chart($charts['suhu']),
 
             Stat::make('Kelembapan Udara', "{$latest->kelembapan_udara} %")
                 ->description("Terupdate {$timeAgo}")
                 ->descriptionIcon(Heroicon::Cloud)
                 ->color($this->getHumidityColor($latest->kelembapan_udara))
-                ->chart($this->getHumidityChartData()),
+                ->chart($charts['kelembapan_udara']),
 
             Stat::make('Kelembapan Tanah', "{$latest->kelembapan_tanah} %")
                 ->description("Terupdate {$timeAgo}")
                 ->descriptionIcon(Heroicon::Beaker)
                 ->color($this->getSoilHumidityColor($latest->kelembapan_tanah))
-                ->chart($this->getSoilHumidityChartData()),
+                ->chart($charts['kelembapan_tanah']),
 
             Stat::make('Status Kipas', $latest->relay_fan ? 'Hidup' : 'Mati')
                 ->description("Terupdate {$timeAgo}")
@@ -122,36 +124,30 @@ class StatsOverviewWidget extends BaseWidget
         };
     }
 
-    private function getTemperatureChartData(): array
+    /**
+     * Ambil data chart 24 jam untuk ketiga metrik dalam satu query.
+     *
+     * @return array{suhu: array<int, float|string>, kelembapan_udara: array<int, float|string>, kelembapan_tanah: array<int, float|string>}
+     */
+    private function getChartData(): array
     {
-        $data = SensorReading::select('suhu')
+        $rows = SensorReading::query()
             ->where('created_at', '>=', now()->subHours(24))
             ->orderBy('created_at')
-            ->pluck('suhu')
-            ->toArray();
+            ->get(['suhu', 'kelembapan_udara', 'kelembapan_tanah']);
 
-        return $data ?: [0];
-    }
+        if ($rows->isEmpty()) {
+            return [
+                'suhu' => [0],
+                'kelembapan_udara' => [0],
+                'kelembapan_tanah' => [0],
+            ];
+        }
 
-    private function getHumidityChartData(): array
-    {
-        $data = SensorReading::select('kelembapan_udara')
-            ->where('created_at', '>=', now()->subHours(24))
-            ->orderBy('created_at')
-            ->pluck('kelembapan_udara')
-            ->toArray();
-
-        return $data ?: [0];
-    }
-
-    private function getSoilHumidityChartData(): array
-    {
-        $data = SensorReading::select('kelembapan_tanah')
-            ->where('created_at', '>=', now()->subHours(24))
-            ->orderBy('created_at')
-            ->pluck('kelembapan_tanah')
-            ->toArray();
-
-        return $data ?: [0];
+        return [
+            'suhu' => $rows->pluck('suhu')->all(),
+            'kelembapan_udara' => $rows->pluck('kelembapan_udara')->all(),
+            'kelembapan_tanah' => $rows->pluck('kelembapan_tanah')->all(),
+        ];
     }
 }

@@ -128,6 +128,29 @@ class Configuration extends Model
     }
 
     /**
+     * Ambil beberapa nilai konfigurasi sekaligus dalam satu query.
+     *
+     * @param  array<int, string>  $keys
+     * @return array<string, mixed>
+     */
+    public static function getValues(array $keys, mixed $default = null): array
+    {
+        $configs = self::whereIn('key', $keys)->get()->keyBy('key');
+
+        $values = [];
+
+        foreach ($keys as $key) {
+            $config = $configs->get($key);
+
+            $values[$key] = $config
+                ? self::castValue($config->value, $config->type)
+                : $default;
+        }
+
+        return $values;
+    }
+
+    /**
      * Simpan nilai konfigurasi berdasarkan key.
      */
     public static function setValue(string $key, mixed $value): void

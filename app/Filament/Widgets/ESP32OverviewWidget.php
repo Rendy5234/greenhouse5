@@ -12,7 +12,7 @@ class ESP32OverviewWidget extends BaseWidget
 {
     protected static ?int $sort = 3;
 
-    protected ?string $pollingInterval = '10s';
+    protected ?string $pollingInterval = '5s';
 
     protected function getStats(): array
     {

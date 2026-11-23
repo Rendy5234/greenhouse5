@@ -16,13 +16,13 @@ class SensorDataController extends Controller
      */
     public function __invoke(SensorDataRequest $request): JsonResponse
     {
-        // Ambil konfigurasi threshold terbaru untuk snapshot
-        $config = [
-            'temp_on' => Configuration::getValue('temp_on'),
-            'temp_off' => Configuration::getValue('temp_off'),
-            'soil_dry' => Configuration::getValue('soil_dry'),
-            'soil_wet' => Configuration::getValue('soil_wet'),
-        ];
+        // Ambil konfigurasi threshold terbaru untuk snapshot (satu query)
+        $config = Configuration::getValues([
+            'temp_on',
+            'temp_off',
+            'soil_dry',
+            'soil_wet',
+        ]);
 
         // Simpan data sensor ke database dengan snapshot threshold
         SensorReading::create(array_merge(

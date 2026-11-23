@@ -13,7 +13,7 @@ class SensorChartWidget extends ChartWidget
 
     protected static ?int $sort = 2;
 
-    protected ?string $pollingInterval = '60s';
+    protected ?string $pollingInterval = '30s';
 
     protected ?string $maxWidth = 'full';
 
