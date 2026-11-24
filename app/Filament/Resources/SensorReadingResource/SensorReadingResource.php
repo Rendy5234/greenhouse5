@@ -29,11 +29,6 @@ class SensorReadingResource extends Resource
         return 'Monitoring';
     }
 
-    public static function getNavigationBadge(): ?string
-    {
-        return (string) SensorReading::query()->count();
-    }
-
     public static function form(Schema $schema): Schema
     {
         return (new SensorReadingForm)->form($schema);

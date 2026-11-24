@@ -187,4 +187,35 @@ class SensorReadingResourceTest extends TestCase
         $this->assertTrue($reading->fan_pending);
         $this->assertIsBool($reading->fan_pending);
     }
+
+    public function test_tabel_default_hanya_menampilkan_data_hari_ini(): void
+    {
+        $this->actingAs($this->user);
+
+        $kemarin = SensorReading::factory()->create([
+            'created_at' => now()->subDays(2),
+            'suhu' => 11.1,
+        ]);
+
+        $hariIni = SensorReading::factory()->create([
+            'created_at' => now(),
+            'suhu' => 22.2,
+        ]);
+
+        Livewire::test(ListSensorReadings::class)
+            ->assertCanNotSeeTableRecords([$kemarin])
+            ->assertCanSeeTableRecords([$hariIni]);
+    }
+
+    public function test_filter_periode_semua_data_menampilkan_data_lama(): void
+    {
+        $this->actingAs($this->user);
+
+        $kemarin = SensorReading::factory()->create(['created_at' => now()->subDays(2)]);
+        $hariIni = SensorReading::factory()->create(['created_at' => now()]);
+
+        Livewire::test(ListSensorReadings::class)
+            ->filterTable('periode', 'all')
+            ->assertCanSeeTableRecords([$kemarin, $hariIni]);
+    }
 }

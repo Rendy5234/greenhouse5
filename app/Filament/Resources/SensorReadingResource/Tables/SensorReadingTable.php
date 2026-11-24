@@ -91,6 +91,26 @@ class SensorReadingTable
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
+                SelectFilter::make('periode')
+                    ->label('Periode')
+                    ->options([
+                        '1h' => '1 jam terakhir',
+                        'today' => 'Hari ini',
+                        '7d' => '7 hari terakhir',
+                        '30d' => '30 hari terakhir',
+                        'all' => 'Semua data',
+                    ])
+                    ->default('today')
+                    ->query(function (Builder $query, array $data): Builder {
+                        return match ($data['value'] ?? null) {
+                            '1h' => $query->where('created_at', '>=', now()->subHour()),
+                            'today' => $query->where('created_at', '>=', now()->startOfDay()),
+                            '7d' => $query->where('created_at', '>=', now()->subDays(7)),
+                            '30d' => $query->where('created_at', '>=', now()->subDays(30)),
+                            default => $query,
+                        };
+                    }),
+
                 SelectFilter::make('led_mode')
                     ->label('Mode LED')
                     ->options([
