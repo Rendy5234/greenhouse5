@@ -1,112 +1,319 @@
-// ============================================
-// SMART GREENHOUSE - FINAL CODE
-// Sensor  : DHT22 + Potensiometer
-// Aktuator: Relay Kipas + Relay Pompa + 3 LED
-// ============================================
-
+#include <WiFi.h>
+#include <WiFiManager.h>
+#include <HTTPClient.h>
+#include <ArduinoJson.h>
 #include "DHT.h"
 
 // ---------- PIN ----------
-#define DHTPIN       32   // DHT22 → D15
+#define DHTPIN       32
 #define DHTTYPE      DHT22
-#define SOIL_PIN     35    // Potensiometer → D2
+#define SOIL_PIN     35
+#define RELAY_KIPAS  26
+#define RELAY_POMPA  27
+#define LED_HIJAU    33
+#define LED_BIRU     25
+#define LED_MERAH    13
 
-#define RELAY_KIPAS  26    // Relay kipas → D5
-#define RELAY_POMPA  27   // Relay pompa (sanyo) → D18
+// ---------- SERVER API ----------
+const String SERVER_URL = "https://greenhouse.urn.my.id/api/sensor-data"; 
+const String API_KEY = "gh_iot_2024_secret_key_abc123xyz789"; 
 
-#define LED_HIJAU    33    // LED Hijau → D4
-#define LED_BIRU     25   // LED Biru → D16
-#define LED_MERAH    13   // LED Merah → D17
-
-// ---------- AMBANG BATAS ----------
-const float TEMP_ON       = 30.0;   // Suhu kipas nyala
-const float TEMP_OFF      = 28.0;   // Suhu kipas mati (hysteresis 2°C)
-const int   SOIL_KERING   = 2500;   // ADC tanah kering (pompa nyala)
-const int   SOIL_BASAH    = 1500;   // ADC tanah basah (pompa mati)
+// ---------- PARAMETER DINAMIS ----------
+float TEMP_ON     = 30.0;
+float TEMP_OFF    = 28.0;
+int   SOIL_KERING = 2500;
+int   SOIL_BASAH  = 1500;
 
 DHT dht(DHTPIN, DHTTYPE);
 
-// State
+// Koneksi HTTPS yang dipakai ulang agar tidak handshake berkali-kali
+WiFiClientSecure secureClient;
+
+// Prototipe fungsi (didefinisikan di bawah loop)
+void sendDataWithRetry(float suhu, float lembab, int soil, String ledMode);
+void applyConfigFromResponse(const String &payloadResponse);
+
+// State Aktual (Fisik)
 bool kipasON = false;
 bool pompaON = false;
 
+// Kipas diminta nyala oleh sensor suhu, tetapi ditahan karena pompa aktif
+bool fanPending = false;
+
+// Variabel untuk Jeda Relay (Non-Blocking)
+bool isTransitioning = false;
+unsigned long transitionStartTime = 0;
+bool targetKipas = false;
+bool targetPompa = false;
+
+// ---------- JADWAL (NON-BLOCKING) ----------
+// Tidak ada delay panjang di loop. Setiap putaran hanya memeriksa jam,
+// sehingga jadwal baca dan jadwal kirim berjalan mandiri.
+const unsigned long SENSOR_INTERVAL_MS   = 2000; // baca sensor tiap 2 detik (batas aman DHT22)
+const unsigned long SEND_INTERVAL_MS     = 5000; // kirim data tiap 5 detik
+const unsigned long RELAY_SETTLE_MS      = 500;  // jeda aman antar perpindahan relay
+const unsigned long POST_RELAY_SETTLE_MS = 1500; // tunda kirim setelah relay klik (stabilkan WiFi)
+const unsigned long LED_BLINK_MS         = 400;  // irama kedip LED biru saat kipas pending
+const unsigned long LOOP_TICK_MS         = 20;   // irama putaran loop
+
+unsigned long lastSensorRead = 0;
+unsigned long lastSendStart = 0;
+
+// Variabel kedip LED biru (non-blocking)
+unsigned long lastBlinkToggle = 0;
+bool blinkState = false;
+
+// Nilai valid terakhir dari sensor (tetap dipakai bila satu pembacaan gagal)
+float lastSuhu = NAN;
+float lastLembab = NAN;
+int   lastSoil = 0;
+bool  sensorReady = false;
+
 void setup() {
   Serial.begin(115200);
-  delay(2000);
-  Serial.println("\n=== SMART GREENHOUSE ===");
-
+  
   pinMode(RELAY_KIPAS, OUTPUT);
   pinMode(RELAY_POMPA, OUTPUT);
   pinMode(LED_MERAH, OUTPUT);
-  pinMode(LED_BIRU,  OUTPUT);
+  pinMode(LED_BIRU, OUTPUT);
   pinMode(LED_HIJAU, OUTPUT);
 
-  // Semua OFF dulu (relay active LOW)
+  // Semua OFF dulu
   digitalWrite(RELAY_KIPAS, HIGH);
   digitalWrite(RELAY_POMPA, HIGH);
   digitalWrite(LED_MERAH, LOW);
-  digitalWrite(LED_BIRU,  LOW);
+  digitalWrite(LED_BIRU, LOW);
   digitalWrite(LED_HIJAU, LOW);
 
   dht.begin();
-  delay(2000);
 
-  Serial.println("SISTEM SIAP\n");
+  // WiFi Manager
+  WiFiManager wm;
+  Serial.println("Mencoba konek WiFi...");
+  bool res = wm.autoConnect("Greenhouse-Setup"); 
+  
+  if(!res) {
+    Serial.println("Gagal terhubung ke WiFi. Restart...");
+    delay(3000);
+    ESP.restart();
+  } 
+
+  // Matikan modem sleep agar respons jaringan lebih konsisten (mengurangi jeda acak)
+  WiFi.setSleep(false);
+
+  // TLS tanpa verifikasi sertifikat (sama seperti perilaku sebelumnya)
+  secureClient.setInsecure();
+
+  Serial.println("Berhasil terhubung ke WiFi!");
 }
 
 void loop() {
-  // ---------- BACA SENSOR ----------
-  float suhu   = dht.readTemperature();
-  float lembab = dht.readHumidity();
-  int   soil   = analogRead(SOIL_PIN);
+  unsigned long now = millis();
 
-  if (isnan(suhu) || isnan(lembab)) {
-    Serial.println("[ERROR] DHT22 gagal!");
-    delay(2000);
+  // 1. Baca Sensor Sesuai Jadwal (tiap 2 detik, non-blocking)
+  if (now - lastSensorRead >= SENSOR_INTERVAL_MS) {
+    lastSensorRead = now;
+
+    float suhu   = dht.readTemperature();
+    float lembab = dht.readHumidity();
+    int   soil   = analogRead(SOIL_PIN);
+
+    if (!isnan(suhu) && !isnan(lembab)) {
+      lastSuhu = suhu;
+      lastLembab = lembab;
+      lastSoil = soil;
+      sensorReady = true;
+    } else {
+      sensorReady = false;
+      Serial.println("Baca DHT22 gagal, menunggu siklus berikutnya.");
+    }
+  }
+
+  if (!sensorReady) {
+    delay(LOOP_TICK_MS);
     return;
   }
 
-  Serial.println("─────────────────────");
-  Serial.printf("Suhu   : %.1f C\n", suhu);
-  Serial.printf("Lembab : %.1f %%\n", lembab);
-  Serial.printf("Tanah  : %d\n", soil);
+  // 2. Tentukan Target (Logika Hysteresis)
+  bool reqKipas = false;
+  if (lastSuhu > TEMP_ON)       reqKipas = true;
+  else if (lastSuhu < TEMP_OFF) reqKipas = false;
+  else                          reqKipas = kipasON; // Tahan state sebelumnya
 
-  // ---------- LOGIKA KIPAS (hysteresis) ----------
-  if (suhu > TEMP_ON)       kipasON = true;
-  else if (suhu < TEMP_OFF) kipasON = false;
-  digitalWrite(RELAY_KIPAS, kipasON ? LOW : HIGH);
+  bool reqPompa = false;
+  if (lastSoil > SOIL_KERING)      reqPompa = true;
+  else if (lastSoil < SOIL_BASAH)  reqPompa = false;
+  else                             reqPompa = pompaON; // Tahan state sebelumnya
 
-  // ---------- LOGIKA POMPA (hysteresis) ----------
-  if (soil > SOIL_KERING)      pompaON = true;
-  else if (soil < SOIL_BASAH)  pompaON = false;
-  digitalWrite(RELAY_POMPA, pompaON ? LOW : HIGH);
+  // Simpan permintaan kipas SEBELUM aturan prioritas menimpanya,
+  // supaya kondisi "kipas menunggu" tetap bisa dilaporkan ke server.
+  bool fanDiminta = reqKipas;
 
-  // ---------- LOGIKA LED ----------
-  if (!kipasON && !pompaON) {
-    // Normal
-    digitalWrite(LED_HIJAU, HIGH);
-    digitalWrite(LED_MERAH, LOW);
-    digitalWrite(LED_BIRU,  LOW);
-    Serial.println("Status : NORMAL (LED Hijau)");
-  } else if (kipasON && !pompaON) {
-    // Kipas saja
-    digitalWrite(LED_HIJAU, LOW);
-    digitalWrite(LED_MERAH, LOW);
-    digitalWrite(LED_BIRU,  HIGH);
-    Serial.println("Status : KIPAS ON (LED Biru)");
-  } else if (!kipasON && pompaON) {
-    // Pompa saja
-    digitalWrite(LED_HIJAU, LOW);
-    digitalWrite(LED_MERAH, HIGH);
-    digitalWrite(LED_BIRU,  LOW);
-    Serial.println("Status : POMPA ON (LED Merah)");
-  } else {
-    // Dua-duanya
-    digitalWrite(LED_HIJAU, LOW);
-    digitalWrite(LED_MERAH, HIGH);
-    digitalWrite(LED_BIRU,  HIGH);
-    Serial.println("Status : KIPAS + POMPA ON");
+  // --- ATURAN PRIORITAS: Jika Pompa minta nyala, Kipas WAJIB mati ---
+  if (reqPompa == true) {
+    reqKipas = false; 
   }
 
-  delay(2000);
+  fanPending = fanDiminta && reqPompa;
+
+  targetKipas = reqKipas;
+  targetPompa = reqPompa;
+
+  // 3. Eksekusi Relay dengan Jeda 0.5 Detik (Non-Blocking)
+  if (!isTransitioning) {
+    // Jika target berbeda dengan kondisi fisik saat ini
+    if (targetKipas != kipasON || targetPompa != pompaON) {
+      // Matikan semua relay dulu untuk jeda aman
+      digitalWrite(RELAY_KIPAS, HIGH); 
+      digitalWrite(RELAY_POMPA, HIGH);
+      kipasON = false;
+      pompaON = false;
+      
+      isTransitioning = true;
+      transitionStartTime = millis();
+      Serial.println("Relay Switching: Jeda 0.5 detik...");
+    }
+  } else {
+    // Jika sedang dalam masa jeda 0.5 detik (500ms)
+    if (millis() - transitionStartTime >= RELAY_SETTLE_MS) {
+      isTransitioning = false;
+      
+      // Nyalakan sesuai target baru
+      kipasON = targetKipas;
+      pompaON = targetPompa;
+      
+      digitalWrite(RELAY_KIPAS, kipasON ? LOW : HIGH);
+      digitalWrite(RELAY_POMPA, pompaON ? LOW : HIGH);
+      Serial.println("Relay Switching: Selesai.");
+      
+      // Beri waktu WiFi untuk stabil setelah relay klik:
+      // jadwalkan kirim 1.5 detik dari sekarang
+      lastSendStart = millis() - SEND_INTERVAL_MS + POST_RELAY_SETTLE_MS; 
+    }
+  }
+
+  // 4. Logika LED (Berdasarkan kondisi fisik aktual)
+  if (isTransitioning) {
+    // Saat transisi (jeda), matikan semua LED
+    digitalWrite(LED_HIJAU, LOW); digitalWrite(LED_MERAH, LOW); digitalWrite(LED_BIRU, LOW);
+    blinkState = false;
+  } else {
+    if (!kipasON && !pompaON) {
+      digitalWrite(LED_HIJAU, HIGH); digitalWrite(LED_MERAH, LOW); digitalWrite(LED_BIRU, LOW);
+      blinkState = false;
+    } else if (kipasON && !pompaON) {
+      digitalWrite(LED_HIJAU, LOW); digitalWrite(LED_MERAH, LOW); digitalWrite(LED_BIRU, HIGH);
+      blinkState = false;
+    } else if (!kipasON && pompaON) {
+      digitalWrite(LED_HIJAU, LOW); digitalWrite(LED_MERAH, HIGH);
+
+      // Kipas pending: LED biru berkedip sebagai penanda "menunggu"
+      if (fanPending) {
+        if (millis() - lastBlinkToggle >= LED_BLINK_MS) {
+          lastBlinkToggle = millis();
+          blinkState = !blinkState;
+        }
+        digitalWrite(LED_BIRU, blinkState ? HIGH : LOW);
+      } else {
+        digitalWrite(LED_BIRU, LOW);
+        blinkState = false;
+      }
+    } else {
+      digitalWrite(LED_HIJAU, LOW); digitalWrite(LED_MERAH, HIGH); digitalWrite(LED_BIRU, HIGH);
+      blinkState = false;
+    }
+  }
+
+  // 5. Kirim Data ke Laravel (Hanya jika tidak sedang transisi)
+  // Timer dihitung dari SAAT MULAI kirim, bukan setelah selesai,
+  // agar lama proses HTTPS tidak menambah jarak antar data.
+  if (!isTransitioning && (millis() - lastSendStart >= SEND_INTERVAL_MS)) {
+    
+    String ledModeStr = "normal";
+    if (kipasON && pompaON) ledModeStr = "kritis"; // harus cocok dengan enum di server
+    else if (kipasON)       ledModeStr = "kipas";
+    else if (pompaON)       ledModeStr = "pompa";
+    
+    lastSendStart = millis();
+    sendDataWithRetry(lastSuhu, lastLembab, lastSoil, ledModeStr);
+  }
+
+  delay(LOOP_TICK_MS);
+}
+
+// ==========================================
+// FUNGSI KIRIM DATA DENGAN FITUR RETRY
+// ==========================================
+void sendDataWithRetry(float suhu, float lembab, int soil, String ledMode) {
+  if (WiFi.status() != WL_CONNECTED) return;
+
+  const int maxRetries = 3;
+
+  // Susun payload tanpa operasi String agar heap tidak terfragmentasi
+  char payload[288];
+  snprintf(payload, sizeof(payload),
+           "{\"suhu\":%.1f,\"kelembapan_udara\":%.1f,\"kelembapan_tanah\":%d,"
+           "\"relay_fan\":%s,\"relay_pump\":%s,\"fan_pending\":%s,\"led_mode\":\"%s\"}",
+           suhu, lembab, soil,
+           kipasON ? "true" : "false",
+           pompaON ? "true" : "false",
+           fanPending ? "true" : "false",
+           ledMode.c_str());
+
+  for (int i = 0; i < maxRetries; i++) {
+    HTTPClient http;
+    http.begin(secureClient, SERVER_URL); // pakai koneksi yang sama, hindari handshake ulang
+    http.setReuse(true);
+    http.setConnectTimeout(3000);
+    http.setTimeout(4000);
+    http.setFollowRedirects(HTTPC_STRICT_FOLLOW_REDIRECTS);
+    http.addHeader("Content-Type", "application/json");
+    http.addHeader("X-API-Key", API_KEY);
+
+    int httpCode = http.POST((uint8_t *)payload, strlen(payload));
+
+    if (httpCode == 201 || httpCode == 200) {
+      String payloadResponse = http.getString();
+      Serial.println("Response Server: " + payloadResponse);
+
+      applyConfigFromResponse(payloadResponse);
+
+      http.end();
+      return;
+    }
+
+    // 4xx = request/otentikasi bermasalah, percuma diulang
+    if (httpCode >= 400 && httpCode < 500) {
+      Serial.printf("Request ditolak server (HTTP %d). Tidak diulang.\n", httpCode);
+      http.end();
+      return;
+    }
+
+    Serial.printf("Percobaan %d Gagal. HTTP Code: %d\n", i + 1, httpCode);
+    http.end();
+
+    if (i < maxRetries - 1) {
+      delay(1000); 
+    }
+  }
+}
+
+// ==========================================
+// TERAPKAN CONFIG DARI RESPONSE SERVER
+// ==========================================
+void applyConfigFromResponse(const String &payloadResponse) {
+  StaticJsonDocument<384> doc;
+
+  DeserializationError error = deserializeJson(doc, payloadResponse);
+
+  if (error || !doc.containsKey("config")) {
+    return;
+  }
+
+  TEMP_ON     = doc["config"]["temp_on"].as<float>();
+  TEMP_OFF    = doc["config"]["temp_off"].as<float>();
+  SOIL_KERING = doc["config"]["soil_dry"].as<int>();
+  SOIL_BASAH  = doc["config"]["soil_wet"].as<int>();
+
+  Serial.printf("Config Updated -> Temp ON: %.1f, OFF: %.1f\n", TEMP_ON, TEMP_OFF);
 }

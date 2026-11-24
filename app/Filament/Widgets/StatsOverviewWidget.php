@@ -49,12 +49,14 @@ class StatsOverviewWidget extends BaseWidget
                 ->color($this->getSoilHumidityColor($latest->kelembapan_tanah))
                 ->chart($charts['kelembapan_tanah']),
 
-            Stat::make('Status Kipas', $latest->relay_fan ? 'Hidup' : 'Mati')
-                ->description("Terupdate {$timeAgo}")
-                ->descriptionIcon(Heroicon::Bars3)
-                ->color($latest->relay_fan ? 'success' : 'gray')
+            Stat::make('Status Kipas', $latest->fan_pending ? 'Menunggu' : ($latest->relay_fan ? 'Hidup' : 'Mati'))
+                ->description($latest->fan_pending ? "Ditahan, pompa prioritas · {$timeAgo}" : "Terupdate {$timeAgo}")
+                ->descriptionIcon($latest->fan_pending ? Heroicon::ArrowPath : Heroicon::Bars3)
+                ->color($latest->fan_pending ? 'warning' : ($latest->relay_fan ? 'success' : 'gray'))
                 ->extraAttributes([
-                    'class' => $latest->relay_fan ? 'bg-green-50 dark:bg-green-900/20' : '',
+                    'class' => $latest->fan_pending
+                        ? 'bg-amber-50 dark:bg-amber-900/20'
+                        : ($latest->relay_fan ? 'bg-green-50 dark:bg-green-900/20' : ''),
                 ]),
 
             Stat::make('Status Pompa', $latest->relay_pump ? 'Hidup' : 'Mati')

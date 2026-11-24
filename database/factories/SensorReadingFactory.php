@@ -21,6 +21,7 @@ class SensorReadingFactory extends Factory
             'kelembapan_tanah' => $this->faker->numberBetween(0, 4095),
             'relay_fan' => $this->faker->boolean,
             'relay_pump' => $this->faker->boolean,
+            'fan_pending' => false,
             'led_mode' => $this->faker->randomElement(['normal', 'kipas', 'pompa', 'kritis']),
             'temp_on_used' => $this->faker->optional()->randomFloat(2, 20, 35),
             'temp_off_used' => $this->faker->optional()->randomFloat(2, 20, 35),

@@ -21,6 +21,7 @@ class SensorReading extends Model
         'kelembapan_tanah',
         'relay_fan',
         'relay_pump',
+        'fan_pending',
         'led_mode',
         'temp_on_used',
         'temp_off_used',
@@ -36,6 +37,7 @@ class SensorReading extends Model
         return [
             'relay_fan' => 'boolean',
             'relay_pump' => 'boolean',
+            'fan_pending' => 'boolean',
             'suhu' => 'decimal:2',
             'kelembapan_udara' => 'decimal:2',
             'temp_on_used' => 'decimal:2',

@@ -28,6 +28,7 @@ class SensorDataRequest extends FormRequest
             'kelembapan_tanah' => ['required', 'integer', 'min:0', 'max:4095'],
             'relay_fan' => ['nullable', 'boolean'],
             'relay_pump' => ['nullable', 'boolean'],
+            'fan_pending' => ['nullable', 'boolean'],
             'led_mode' => ['nullable', 'in:normal,kipas,pompa,kritis'],
         ];
     }

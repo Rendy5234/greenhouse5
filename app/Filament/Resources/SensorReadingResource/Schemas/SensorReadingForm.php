@@ -51,6 +51,15 @@ class SensorReadingForm
                         ->disabled()
                         ->columnSpan(['default' => 1, 'md' => 2]),
 
+                    Select::make('fan_pending')
+                        ->label('Kipas Pending')
+                        ->options([
+                            '0' => 'Tidak',
+                            '1' => 'Ya (menunggu pompa)',
+                        ])
+                        ->disabled()
+                        ->columnSpan(['default' => 1, 'md' => 2]),
+
                     Select::make('led_mode')
                         ->label('Mode LED')
                         ->options([

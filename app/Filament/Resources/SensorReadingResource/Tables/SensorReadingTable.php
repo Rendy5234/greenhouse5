@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\SensorReadingResource\Tables;
 
+use App\Models\SensorReading;
 use Filament\Forms\Components\DatePicker;
 use Filament\Tables\Columns\BadgeColumn;
 use Filament\Tables\Columns\TextColumn;
@@ -41,11 +42,12 @@ class SensorReadingTable
 
                 BadgeColumn::make('relay_fan')
                     ->label('Kipas')
-                    ->colors([
-                        'success' => '1',
-                        'gray' => '0',
-                    ])
-                    ->formatStateUsing(fn ($state) => $state ? 'Hidup' : 'Mati')
+                    ->formatStateUsing(fn ($state, SensorReading $record): string => $record->fan_pending
+                        ? 'Menunggu'
+                        : ($state ? 'Hidup' : 'Mati'))
+                    ->color(fn (SensorReading $record): string => $record->fan_pending
+                        ? 'warning'
+                        : ($record->relay_fan ? 'success' : 'gray'))
                     ->sortable(),
 
                 BadgeColumn::make('relay_pump')
@@ -120,6 +122,11 @@ class SensorReadingTable
                 Filter::make('relay_pump')
                     ->label('Pompa Aktif')
                     ->query(fn (Builder $query) => $query->where('relay_pump', true))
+                    ->toggle(),
+
+                Filter::make('fan_pending')
+                    ->label('Kipas Pending')
+                    ->query(fn (Builder $query) => $query->where('fan_pending', true))
                     ->toggle(),
             ])
             ->actions([])

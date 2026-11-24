@@ -136,4 +136,42 @@ class ApiSensorDataTest extends TestCase
             ],
         ]);
     }
+
+    public function test_fan_pending_disimpan_saat_kipas_ditahan_pompa(): void
+    {
+        config(['app.api_key' => 'test-key-123']);
+        $response = $this->postJson('/api/sensor-data', [
+            'suhu' => 32.5,
+            'kelembapan_udara' => 75.0,
+            'kelembapan_tanah' => 2800,
+            'relay_fan' => false,
+            'relay_pump' => true,
+            'fan_pending' => true,
+            'led_mode' => 'pompa',
+        ], ['X-API-Key' => 'test-key-123']);
+
+        $response->assertStatus(201);
+
+        $this->assertDatabaseHas('sensor_readings', [
+            'relay_pump' => true,
+            'fan_pending' => true,
+            'led_mode' => 'pompa',
+        ]);
+    }
+
+    public function test_fan_pending_default_false_bila_tidak_dikirim(): void
+    {
+        config(['app.api_key' => 'test-key-123']);
+        $response = $this->postJson('/api/sensor-data', [
+            'suhu' => 32.5,
+            'kelembapan_udara' => 75.0,
+            'kelembapan_tanah' => 2800,
+        ], ['X-API-Key' => 'test-key-123']);
+
+        $response->assertStatus(201);
+
+        $this->assertDatabaseHas('sensor_readings', [
+            'fan_pending' => false,
+        ]);
+    }
 }

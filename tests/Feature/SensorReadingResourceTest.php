@@ -163,4 +163,28 @@ class SensorReadingResourceTest extends TestCase
         $this->assertIsInt((int) $reading->soil_dry_used);
         $this->assertIsInt((int) $reading->soil_wet_used);
     }
+
+    public function test_table_menampilkan_status_kipas_menunggu_saat_pending(): void
+    {
+        $this->actingAs($this->user);
+
+        SensorReading::factory()->create([
+            'relay_fan' => false,
+            'relay_pump' => true,
+            'fan_pending' => true,
+            'led_mode' => 'pompa',
+        ]);
+
+        Livewire::test(ListSensorReadings::class)
+            ->assertStatus(200)
+            ->assertSee('Menunggu');
+    }
+
+    public function test_fan_pending_ter_cast_ke_boolean(): void
+    {
+        $reading = SensorReading::factory()->create(['fan_pending' => true]);
+
+        $this->assertTrue($reading->fan_pending);
+        $this->assertIsBool($reading->fan_pending);
+    }
 }
