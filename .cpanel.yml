@@ -2,4 +2,4 @@
 deployment:
   tasks:
     - export DEPLOYPATH=/home/urn/public_html/greenhouse/
-    - /bin/rsync -av --delete --exclude='.env' --exclude='vendor/' --exclude='node_modules/' --exclude='storage/' --exclude='bootstrap/cache/' --exclude='database/*.sqlite' --exclude='.git/' --exclude='error_log' --exclude='.cline/' --exclude='.clinerules/' --exclude='memori.md' --exclude='AGENTS.md' --exclude='public/.well-known/' --exclude='public/cgi-bin/' --exclude='public/.user.ini' --exclude='public/php.ini' --exclude='public/storage' ./ $DEPLOYPATH
+    - /bin/rsync -av --delete --exclude='.env' --exclude='vendor/' --exclude='node_modules/' --exclude='storage/' --exclude='bootstrap/cache/' --exclude='database/*.sqlite' --exclude='.git/' --exclude='error_log' --exclude='.cline/' --exclude='.clinerules/' --exclude='memori.md' --exclude='AGENTS.md' --exclude='public/.well-known/' --exclude='public/cgi-bin/' --exclude='public/.user.ini' --exclude='public/php.ini' --exclude='public/storage' --exclude='public/css/filament/' --exclude='public/js/filament/' --exclude='public/fonts/filament/' ./ $DEPLOYPATH
